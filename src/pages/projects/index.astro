@@ -4,10 +4,11 @@ import ProjectCard from '../../components/ProjectCard.astro';
 import { getCollection } from 'astro:content';
 
 const allProjects = await getCollection('projects');
+const activeProjects = allProjects.filter((p) => !p.data.draft);
 
-const apps = allProjects.filter((p) => p.data.category === 'app' || p.data.category === 'tool');
-const userscripts = allProjects.filter((p) => p.data.category === 'userscript');
-const archives = allProjects.filter((p) => p.data.category === 'archive');
+const apps = activeProjects.filter((p) => p.data.category === 'app' || p.data.category === 'tool');
+const userscripts = activeProjects.filter((p) => p.data.category === 'userscript');
+const archives = activeProjects.filter((p) => p.data.category === 'archive');
 ---
 
 <BaseLayout title="开源软件与脚本 | Kirosca" description="Kirosca 开发的开源客户端、实用油猴脚本与工程工具">

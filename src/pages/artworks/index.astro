@@ -3,7 +3,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import ArtworkCard from '../../components/ArtworkCard.astro';
 import { getCollection } from 'astro:content';
 
-const artworks = await getCollection('artworks');
+const allArtworks = await getCollection('artworks');
+const artworks = allArtworks.filter((art) => !art.data.draft);
 ---
 
 <BaseLayout title="画作与视觉作品 | Kirosca" description="Kirosca 的数字绘画、游戏美术与视觉概念探索">

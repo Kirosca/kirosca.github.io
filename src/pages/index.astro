@@ -7,17 +7,17 @@ import { getCollection } from 'astro:content';
 
 const allProjects = await getCollection('projects');
 const featuredProjects = allProjects
-  .filter((p) => p.data.featured)
+  .filter((p) => !p.data.draft && p.data.featured)
   .sort((a, b) => a.data.order - b.data.order);
 
 const allArtworks = await getCollection('artworks');
 const featuredArtworks = allArtworks
-  .filter((art) => art.data.featured)
+  .filter((art) => !art.data.draft && art.data.featured)
   .slice(0, 3);
 
 const allPosts = await getCollection('posts');
 const recentPosts = allPosts
-  .filter((post) => post.data.featured)
+  .filter((post) => !post.data.draft && post.data.featured)
   .slice(0, 2);
 ---
 
