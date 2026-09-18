@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="glow1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.2" />
+    </linearGradient>
+    <pattern id="grid1" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="800" height="500" fill="url(#bg1)" />
+  <rect width="800" height="500" fill="url(#grid1)" />
+
+  <!-- Abstract Shapes -->
+  <circle cx="400" cy="230" r="120" fill="url(#glow1)" filter="blur(40px)" />
+  <polygon points="260,340 400,160 540,340" fill="none" stroke="rgba(99,102,241,0.4)" stroke-width="2" />
+  <polygon points="320,340 400,220 480,340" fill="none" stroke="rgba(56,189,248,0.3)" stroke-width="1.5" />
+  <circle cx="400" cy="200" r="32" fill="none" stroke="#818cf8" stroke-width="2" />
+
+  <!-- Text -->
+  <text x="400" y="400" text-anchor="middle" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="15" font-weight="600" fill="#94a3b8" letter-spacing="2">
+    ARTWORK PLACEHOLDER · 01
+  </text>
+  <text x="400" y="425" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#64748b">
+    支持更换为任意 WebP / PNG / JPG 格式画作
+  </text>
+</svg>
