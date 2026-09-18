@@ -1,0 +1,30 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  tags: string[];
+  imageUrl: string;
+  date?: string;
+  url?: string;
+}
+
+const { title, description, tags, imageUrl, date, url = imageUrl } = Astro.props;
+---
+
+<a href={url} target="_blank" rel="noopener noreferrer" class="art-card">
+  <div class="art-img-wrapper">
+    <img src={imageUrl} alt={title} loading="lazy" class="art-img" />
+  </div>
+  <div class="art-info">
+    <div class="card-header">
+      <span class="art-title">{title}</span>
+      {date && <span style="font-size: 11px; color: var(--text-muted);">{date}</span>}
+    </div>
+    <p class="art-desc">{description}</p>
+    <div class="tags" style="margin-top: 4px;">
+      {tags.map((tag) => (
+        <span class="tag">{tag}</span>
+      ))}
+    </div>
+  </div>
+</a>

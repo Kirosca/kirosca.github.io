@@ -1,0 +1,55 @@
+---
+import Navbar from '../components/Navbar.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Kirosca | Personal Homepage',
+  description = 'Kirosca 的个人主页 - 跨平台开发、开源工具、数字绘画与文章专栏',
+} = Astro.props;
+
+const currentPath = Astro.url.pathname;
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="bg-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+      <Navbar currentPath={currentPath} />
+
+      <slot />
+
+      <footer>
+        <p>
+          © 2026 Kirosca · 
+          <a href="https://www.bilibili.com/opus/1231629834092806164" target="_blank" rel="noopener noreferrer">B站专栏</a> · 
+          <a href="https://greasyfork.org/zh-CN/users/815643-kirosca" target="_blank" rel="noopener noreferrer">Greasy Fork</a> · 
+          <a href="https://afdian.com/a/Kirosca" target="_blank" rel="noopener noreferrer">爱发电支持</a> · 
+          Powered by <a href="https://astro.build" target="_blank" rel="noopener noreferrer">Astro</a> & <a href="https://pages.github.com" target="_blank" rel="noopener noreferrer">GitHub Pages</a>
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

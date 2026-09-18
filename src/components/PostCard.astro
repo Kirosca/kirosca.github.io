@@ -1,0 +1,49 @@
+---
+interface Props {
+  title: string;
+  summary: string;
+  date: string;
+  tags: string[];
+  url: string;
+  isExternal?: boolean;
+}
+
+const { title, summary, date, tags, url, isExternal = false } = Astro.props;
+---
+
+<a
+  href={url}
+  target={isExternal ? '_blank' : '_self'}
+  rel={isExternal ? 'noopener noreferrer' : undefined}
+  class="card"
+>
+  <div class="card-top">
+    <div class="card-header">
+      <span class="card-title">{title}</span>
+      <span class="card-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          {isExternal ? (
+            <>
+              <line x1="7" y1="17" x2="17" y2="7" />
+              <polyline points="7 7 17 7 17 17" />
+            </>
+          ) : (
+            <>
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </>
+          )}
+        </svg>
+      </span>
+    </div>
+    <p class="card-desc">{summary}</p>
+  </div>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+    <div class="tags">
+      {tags.map((tag) => (
+        <span class="tag">{tag}</span>
+      ))}
+    </div>
+    <span style="font-size: 11px; color: var(--text-muted);">{date}</span>
+  </div>
+</a>

@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ArtworkCard from '../../components/ArtworkCard.astro';
+import { getCollection } from 'astro:content';
+
+const artworks = await getCollection('artworks');
+---
+
+<BaseLayout title="画作与视觉作品 | Kirosca" description="Kirosca 的数字绘画、游戏美术与视觉概念探索">
+  <section style="padding: 20px 0 10px;">
+    <div class="section-title-wrap">
+      <div class="section-title">画作画廊（Artworks & Gallery）</div>
+    </div>
+    <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 24px;">
+      收录数字绘画习作、次世代游戏美术材质实验与界面视觉概念。点击卡片可查看高清原图。
+    </p>
+
+    <div class="grid-cards">
+      {artworks.map((art) => (
+        <ArtworkCard
+          title={art.data.title}
+          description={art.data.description}
+          tags={art.data.tags}
+          imageUrl={art.data.imageUrl}
+          date={art.data.date}
+        />
+      ))}
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,34 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import { getCollection } from 'astro:content';
+
+const posts = await getCollection('posts');
+const sortedPosts = posts.sort(
+  (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+);
+---
+
+<BaseLayout title="文章与技巧专栏 | Kirosca" description="Kirosca 的技术笔记、专栏分享与开发经验">
+  <section style="padding: 20px 0 10px;">
+    <div class="section-title-wrap">
+      <div class="section-title">文章与专栏（Posts & Articles）</div>
+    </div>
+    <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 24px;">
+      技术剖析、B站专栏动态与工具使用心得记录。
+    </p>
+
+    <div class="grid-cards">
+      {sortedPosts.map((post) => (
+        <PostCard
+          title={post.data.title}
+          summary={post.data.summary}
+          date={post.data.date}
+          tags={post.data.tags}
+          url={post.data.externalUrl || `/posts/${post.id}`}
+          isExternal={!!post.data.externalUrl}
+        />
+      ))}
+    </div>
+  </section>
+</BaseLayout>
