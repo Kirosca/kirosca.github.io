@@ -256,11 +256,28 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
 .section-more:hover {
+  color: #fff;
   transform: translateX(3px);
+}
+
+.section-back {
+  color: var(--primary-light);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.section-back:hover {
+  color: #fff;
+  transform: translateX(-3px);
 }
 
 /* Grid Layouts */
