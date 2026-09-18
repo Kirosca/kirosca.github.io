@@ -6,20 +6,15 @@ interface Props {
 const { currentPath = '/' } = Astro.props;
 
 const navItems = [
-  { name: '首页', path: '/' },
-  { name: '画作', path: '/artworks' },
-  { name: '软件 & 脚本', path: '/projects' },
-  { name: '文章 & 专栏', path: '/posts' },
+  { name: '首页', path: '/#top' },
+  { name: '画作', path: '/#artworks' },
+  { name: '软件 & 脚本', path: '/#projects' },
+  { name: '文章 & 专栏', path: '/#posts' },
 ];
-
-function isActive(itemPath: string) {
-  if (itemPath === '/') return currentPath === '/' || currentPath === '';
-  return currentPath.startsWith(itemPath);
-}
 ---
 
 <header class="navbar">
-  <a href="/" class="nav-brand">
+  <a href="/#top" class="nav-brand">
     <span class="nav-brand-dot"></span>
     Kirosca
   </a>
@@ -28,7 +23,7 @@ function isActive(itemPath: string) {
     {navItems.map((item) => (
       <a
         href={item.path}
-        class={`nav-link ${isActive(item.path) ? 'active' : ''}`}
+        class="nav-link"
       >
         {item.name}
       </a>

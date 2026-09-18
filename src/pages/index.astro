@@ -19,7 +19,7 @@ const recentPosts = allPosts.slice(0, 2);
 
 <BaseLayout>
   <!-- Hero Section -->
-  <section class="hero" style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; padding: 20px 0 10px;">
+  <section id="top" class="hero" style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; padding: 20px 0 10px;">
     <div style="position: relative; width: 110px; height: 110px;">
       <img
         src="https://avatars.githubusercontent.com/u/35485370?v=4"
@@ -84,7 +84,7 @@ const recentPosts = allPosts.slice(0, 2);
   </section>
 
   <!-- Section 1: 画作展示速览 -->
-  <section>
+  <section id="artworks">
     <div class="section-title-wrap">
       <div class="section-title">画作与视觉作品</div>
       <a href="/artworks" class="section-more">
@@ -108,7 +108,7 @@ const recentPosts = allPosts.slice(0, 2);
   </section>
 
   <!-- Section 2: 软件与脚本 -->
-  <section>
+  <section id="projects">
     <div class="section-title-wrap">
       <div class="section-title">开源软件 & 油猴脚本</div>
       <a href="/projects" class="section-more">
@@ -132,7 +132,7 @@ const recentPosts = allPosts.slice(0, 2);
   </section>
 
   <!-- Section 3: 文章与专栏 -->
-  <section>
+  <section id="posts">
     <div class="section-title-wrap">
       <div class="section-title">文章与技巧分享</div>
       <a href="/posts" class="section-more">
