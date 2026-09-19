@@ -19,7 +19,6 @@
 
 html {
   scroll-behavior: smooth;
-  overflow-x: hidden;
 }
 
 section[id] {
@@ -475,5 +474,71 @@ footer a:hover {
   .nav-link {
     padding: 5px 9px;
     font-size: 12.5px;
+  }
+}
+
+/* View Transitions: 纯水平方向感知切换，彻底消除几何形变与上下斜飞 */
+::view-transition-group(root) {
+  animation-duration: 0.28s;
+  animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* 前进（上级 -> 二级/三级）：从右到左 */
+:root[data-transition-direction="forward"]::view-transition-old(root) {
+  animation: slideOutToLeft 0.28s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+:root[data-transition-direction="forward"]::view-transition-new(root) {
+  animation: slideInFromRight 0.28s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+/* 后退（返回上级、返回首页）：从左到右 */
+:root[data-transition-direction="back"]::view-transition-old(root) {
+  animation: slideOutToRight 0.28s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+:root[data-transition-direction="back"]::view-transition-new(root) {
+  animation: slideInFromLeft 0.28s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+@keyframes slideOutToLeft {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-25%);
+    opacity: 0;
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-25%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
   }
 }
