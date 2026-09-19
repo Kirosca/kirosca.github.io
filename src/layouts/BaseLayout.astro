@@ -80,15 +80,31 @@ const currentPath = Astro.url.pathname;
         document.documentElement.setAttribute('data-transition-direction', direction);
       });
 
+      document.addEventListener('astro:before-swap', () => {
+        // 跨页面切换时强制关闭平滑滚动，杜绝上下滚屏动画
+        document.documentElement.style.scrollBehavior = 'auto';
+      });
+
       document.addEventListener('astro:after-swap', () => {
-        // 若目标路径无指定锚点（如直接点击返回首页），瞬时重置至页面最顶部 (0, 0)
-        if (!window.location.hash) {
-          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        if (window.location.hash) {
+          try {
+            const target = document.querySelector(window.location.hash);
+            if (target) {
+              // 瞬时直接定位于对应 (x, y) 锚点位置，杜绝任何纵向滚动补间动画
+              target.scrollIntoView({ behavior: 'instant' });
+              return;
+            }
+          } catch (e) {
+            // ignore invalid selector
+          }
         }
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       });
 
       document.addEventListener('astro:page-load', () => {
         document.documentElement.removeAttribute('data-transition-direction');
+        // 页面渲染完成后恢复平滑滚动配置，供当前页内顶部电梯导航使用
+        document.documentElement.style.scrollBehavior = '';
       });
     </script>
   </head>
