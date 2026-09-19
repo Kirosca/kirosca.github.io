@@ -80,6 +80,13 @@ const currentPath = Astro.url.pathname;
         document.documentElement.setAttribute('data-transition-direction', direction);
       });
 
+      document.addEventListener('astro:after-swap', () => {
+        // 若目标路径无指定锚点（如直接点击返回首页），瞬时重置至页面最顶部 (0, 0)
+        if (!window.location.hash) {
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        }
+      });
+
       document.addEventListener('astro:page-load', () => {
         document.documentElement.removeAttribute('data-transition-direction');
       });
