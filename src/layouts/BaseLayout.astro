@@ -1,6 +1,6 @@
 ---
 import Navbar from '../components/Navbar.astro';
-import { ClientRouter } from 'astro:transitions';
+import { ClientRouter, slide } from 'astro:transitions';
 import '../styles/global.css';
 
 interface Props {
@@ -30,6 +30,50 @@ const currentPath = Astro.url.pathname;
       rel="stylesheet"
     />
     <ClientRouter />
+    <script>
+      function getPageDepth(pathname: string) {
+        const clean = pathname.replace(/\/+$/, '') || '/';
+        if (clean === '/') return 0;
+        return clean.split('/').filter(Boolean).length;
+      }
+
+      const peerOrder: Record<string, number> = {
+        '/': 0,
+        '/artworks': 1,
+        '/projects': 2,
+        '/posts': 3,
+      };
+
+      document.addEventListener('astro:before-preparation', (event) => {
+        const fromPath = event.from.pathname.replace(/\/+$/, '') || '/';
+        const toPath = event.to.pathname.replace(/\/+$/, '') || '/';
+
+        // 同页内 hash 锚点定位，不干涉动画方向
+        if (fromPath === toPath) {
+          return;
+        }
+
+        const fromDepth = getPageDepth(fromPath);
+        const toDepth = getPageDepth(toPath);
+
+        if (event.direction === 'back') {
+          event.direction = 'back';
+        } else if (event.direction === 'forward') {
+          event.direction = 'forward';
+        } else if (toDepth < fromDepth) {
+          // 深度变小（返回上级、返回首页） -> 从左到右
+          event.direction = 'back';
+        } else if (toDepth > fromDepth) {
+          // 深度变大（进入二级、进入三级） -> 从右到左
+          event.direction = 'forward';
+        } else {
+          // 同级（平级横向切换） -> 根据导航项相对次序
+          const fromOrder = peerOrder[fromPath] ?? 0;
+          const toOrder = peerOrder[toPath] ?? 0;
+          event.direction = toOrder < fromOrder ? 'back' : 'forward';
+        }
+      });
+    </script>
   </head>
   <body>
     <div class="bg-blobs" transition:persist>
@@ -41,7 +85,9 @@ const currentPath = Astro.url.pathname;
     <div class="container">
       <Navbar currentPath={currentPath} />
 
-      <slot />
+      <main class="page-main" transition:animate={slide({ duration: '0.3s' })}>
+        <slot />
+      </main>
 
       <footer>
         <p>
