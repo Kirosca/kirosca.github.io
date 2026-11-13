@@ -36,9 +36,28 @@ const artworks = defineCollection({
     tags: z.array(z.string()),
     imageUrl: z.string(),
     date: z.string().optional(),
+    artType: z.enum(['2d', '3d', 'live2d']).default('2d'),
+    modelUrl: z.string().optional(),
+    live2dConfig: z.record(z.any()).optional(),
     featured: z.boolean().default(false),
     draft: z.boolean().default(false),
   }),
 });
 
-export const collections = { projects, posts, artworks };
+const techArt = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './content/tech-art' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    category: z.enum(['shader', 'pipeline', 'procedural', 'material']),
+    tags: z.array(z.string()),
+    coverUrl: z.string().optional(),
+    shaderType: z.string().optional(),
+    order: z.number().default(0),
+    date: z.string().optional(),
+    featured: z.boolean().default(false),
+    draft: z.boolean().default(false),
+  }),
+});
+
+export const collections = { projects, posts, artworks, techArt };

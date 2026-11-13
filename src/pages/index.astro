@@ -3,17 +3,24 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import ArtworkCard from '../components/ArtworkCard.astro';
 import PostCard from '../components/PostCard.astro';
+import ShaderToyCanvas from '../components/ShaderToyCanvas.astro';
 import { getCollection } from 'astro:content';
+
+const allTechArt = await getCollection('techArt');
+const featuredTechArt = allTechArt
+  .filter((item) => !item.data.draft)
+  .sort((a, b) => a.data.order - b.data.order)
+  .slice(0, 3);
+
+const allArtworks = await getCollection('artworks');
+const featuredArtworks = allArtworks
+  .filter((art) => !art.data.draft && art.data.featured)
+  .slice(0, 4);
 
 const allProjects = await getCollection('projects');
 const featuredProjects = allProjects
   .filter((p) => !p.data.draft && p.data.featured)
   .sort((a, b) => a.data.order - b.data.order);
-
-const allArtworks = await getCollection('artworks');
-const featuredArtworks = allArtworks
-  .filter((art) => !art.data.draft && art.data.featured)
-  .slice(0, 3);
 
 const allPosts = await getCollection('posts');
 const recentPosts = allPosts
@@ -34,15 +41,15 @@ const recentPosts = allPosts
 
     <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 9999px; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); color: var(--primary-light); font-size: 13px; font-weight: 600;">
       <span style="width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px #22c55e;"></span>
-      Building, Drawing & Sharing
+      Coding · Tech-Art · 3D / Live2D · Digital Art
     </div>
 
     <h1 style="font-size: clamp(2.2rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
       Kirosca
     </h1>
 
-    <p style="color: var(--text-muted); font-size: 16px; max-width: 580px; line-height: 1.7;">
-      专注于跨平台开发、开源工具构建、数字绘画研究与现代 Web 体验设计。探索技术与创意的边界。
+    <p style="color: var(--text-muted); font-size: 15.5px; max-width: 640px; line-height: 1.7;">
+      专注于跨平台开发、开源工具构建、技术美术 (TA) 实时着色器与材质管线、3D / Live2D 交互资产以及数字绘画。探索技术与艺术表现的融合边界。
     </p>
 
     <div class="links-bar" style="margin-top: 6px;">
@@ -87,12 +94,53 @@ const recentPosts = allPosts
     </div>
   </section>
 
-  <!-- Section 1: 画作展示速览 -->
-  <section id="artworks">
+  <!-- Section 1: 技术美术工坊 (TA Labs) -->
+  <section id="tech-art">
     <div class="section-title-wrap">
-      <div class="section-title">画作与视觉作品</div>
-      <a href="/artworks" class="section-more">
-        进入完整画廊
+      <div class="section-title">技术美术工坊（Tech-Art Labs）</div>
+      <a href="/tech-art" class="section-more">
+        进入 TA 实验工坊
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </a>
+    </div>
+    
+    <!-- 实时交互式 Shader 演练 -->
+    <div style="margin-bottom: 24px;">
+      <ShaderToyCanvas title="实时 GLSL 片元着色器演练 (Interactive Shader Labs)" />
+    </div>
+
+    <!-- TA 项目卡片展示 -->
+    <div class="grid-cards">
+      {featuredTechArt.map((item) => (
+        <a href="/tech-art" class="card" style="text-decoration: none; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 2px 8px; border-radius: 4px;">
+                {item.data.category}
+              </span>
+              <span style="font-size: 12px; color: var(--text-muted);">{item.data.date}</span>
+            </div>
+            <div class="card-title" style="margin-bottom: 8px;">{item.data.title}</div>
+            <div class="card-desc" style="font-size: 13.5px; margin-bottom: 12px;">{item.data.summary}</div>
+          </div>
+          <div class="tags" style="margin-top: 8px;">
+            {item.data.tags.map((tag) => <span class="tag">{tag}</span>)}
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <!-- Section 2: 多维视觉艺术（2D画作 / 3D资产 / Live2D） -->
+  <section id="gallery">
+    <!-- 兼容历史锚点 #artworks -->
+    <div id="artworks"></div>
+    <div class="section-title-wrap">
+      <div class="section-title">多维视觉艺术（Visual Gallery）</div>
+      <a href="/gallery" class="section-more">
+        进入多维展厅 (3D/Live2D/2D)
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"></polyline>
         </svg>
@@ -106,12 +154,13 @@ const recentPosts = allPosts
           tags={art.data.tags}
           imageUrl={art.data.imageUrl}
           date={art.data.date}
+          url={art.data.artType && art.data.artType !== '2d' ? '/gallery' : art.data.imageUrl}
         />
       ))}
     </div>
   </section>
 
-  <!-- Section 2: 软件与脚本 -->
+  <!-- Section 3: 软件与脚本 -->
   <section id="projects">
     <div class="section-title-wrap">
       <div class="section-title">开源软件 & 油猴脚本</div>
@@ -135,7 +184,7 @@ const recentPosts = allPosts
     </div>
   </section>
 
-  <!-- Section 3: 文章与专栏 -->
+  <!-- Section 4: 文章与专栏 -->
   <section id="posts">
     <div class="section-title-wrap">
       <div class="section-title">文章与技巧分享</div>

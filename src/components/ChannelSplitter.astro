@@ -1,0 +1,217 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title = 'PBR 材质通道解构检视 (Channel Deconstructor)' } = Astro.props;
+---
+
+<div class="channel-card card" data-channel-container>
+  <div class="card-header" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="channel-badge">PBR 通道</span>
+      <span style="font-weight: 700; font-size: 16px; color: #fff;">{title}</span>
+    </div>
+    <div class="channel-tabs">
+      <button class="channel-btn active" data-channel="beauty">最终效果</button>
+      <button class="channel-btn" data-channel="albedo">Albedo</button>
+      <button class="channel-btn" data-channel="normal">Normal</button>
+      <button class="channel-btn" data-channel="roughness">Roughness</button>
+      <button class="channel-btn" data-channel="metallic">Metallic</button>
+    </div>
+  </div>
+
+  <div class="channel-viewport" style="position: relative; width: 100%; height: 260px; border-radius: 12px; overflow: hidden; background: #0b0f19;">
+    <canvas class="channel-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+
+    <div class="channel-info-badge">
+      <span class="cur-channel-text">Beauty (PBR Lit)</span>
+    </div>
+  </div>
+
+  <p style="font-size: 13px; color: var(--text-muted); margin-top: 12px; line-height: 1.6;">
+    点击上方标签可隔离单独贴图通道，用于排查贴图烘焙黑边、法线反转及粗糙度极值分布。
+  </p>
+</div>
+
+<style>
+  .channel-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 20px;
+    backdrop-filter: blur(16px);
+  }
+
+  .channel-badge {
+    background: rgba(168, 85, 247, 0.15);
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    color: #c084fc;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  .channel-tabs {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+
+  .channel-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .channel-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  .channel-btn.active {
+    background: #7c3aed;
+    border-color: #a78bfa;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.4);
+  }
+
+  .channel-info-badge {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: monospace;
+    color: #a78bfa;
+  }
+</style>
+
+<script>
+  function initChannelSplitter() {
+    const containers = document.querySelectorAll('[data-channel-container]');
+    containers.forEach((container) => {
+      const canvas = container.querySelector('.channel-canvas') as HTMLCanvasElement;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const badge = container.querySelector('.cur-channel-text');
+      let curChannel = 'beauty';
+      let time = 0;
+
+      container.querySelectorAll('.channel-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          container.querySelectorAll('.channel-btn').forEach((b) => b.classList.remove('active'));
+          const target = e.currentTarget as HTMLElement;
+          target.classList.add('active');
+          curChannel = target.dataset.channel || 'beauty';
+          if (badge) {
+            badge.textContent = target.textContent || curChannel;
+          }
+        });
+      });
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+          canvas.width = w * dpr;
+          canvas.height = h * dpr;
+        }
+      }
+
+      let animId: number;
+
+      function render() {
+        resize();
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.width / dpr;
+        const h = canvas.height / dpr;
+
+        ctx!.save();
+        ctx!.scale(dpr, dpr);
+        ctx!.clearRect(0, 0, w, h);
+
+        time += 0.02;
+
+        const sphereRadius = Math.min(w, h) * 0.32;
+        const cx = w / 2;
+        const cy = h / 2;
+
+        // 背景微小刻度
+        ctx!.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx!.strokeRect(20, 20, w - 40, h - 40);
+
+        // 渲染球体
+        const grad = ctx!.createRadialGradient(
+          cx - sphereRadius * 0.35, cy - sphereRadius * 0.35, sphereRadius * 0.1,
+          cx, cy, sphereRadius
+        );
+
+        if (curChannel === 'beauty') {
+          // 完整 Lit 光照
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.3, '#3b82f6');
+          grad.addColorStop(0.8, '#1e1b4b');
+          grad.addColorStop(1, '#050314');
+        } else if (curChannel === 'albedo') {
+          // 漫反射色彩
+          grad.addColorStop(0, '#60a5fa');
+          grad.addColorStop(0.5, '#3b82f6');
+          grad.addColorStop(1, '#1d4ed8');
+        } else if (curChannel === 'normal') {
+          // 切线空间法线 (RGB = XYZ)
+          grad.addColorStop(0, '#8080ff');
+          grad.addColorStop(0.5, '#9988ee');
+          grad.addColorStop(1, '#5050cc');
+        } else if (curChannel === 'roughness') {
+          // 粗糙度灰阶
+          grad.addColorStop(0, '#e2e8f0');
+          grad.addColorStop(0.6, '#64748b');
+          grad.addColorStop(1, '#1e293b');
+        } else if (curChannel === 'metallic') {
+          // 金属度高对比黑白
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.8, '#f1f5f9');
+          grad.addColorStop(1, '#0f172a');
+        }
+
+        ctx!.beginPath();
+        ctx!.arc(cx, cy, sphereRadius, 0, Math.PI * 2);
+        ctx!.fillStyle = grad;
+        ctx!.fill();
+
+        // 动态法线高光扫线
+        if (curChannel === 'normal' || curChannel === 'beauty') {
+          ctx!.beginPath();
+          ctx!.arc(cx, cy, sphereRadius, 0, Math.PI * 2);
+          ctx!.strokeStyle = 'rgba(147, 197, 253, 0.3)';
+          ctx!.lineWidth = 2;
+          ctx!.stroke();
+        }
+
+        ctx!.restore();
+        animId = requestAnimationFrame(render);
+      }
+
+      animId = requestAnimationFrame(render);
+
+      document.addEventListener('astro:before-preparation', () => {
+        cancelAnimationFrame(animId);
+      }, { once: true });
+    });
+  }
+
+  document.addEventListener('astro:page-load', initChannelSplitter);
+</script>

@@ -1,0 +1,387 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title = 'Live2D 动态立绘交互舞台 (Motion & Physics)' } = Astro.props;
+---
+
+<div class="live2d-card card" data-live2d-container>
+  <div class="card-header" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="live2d-badge">Live2D 2.5D</span>
+      <span style="font-weight: 700; font-size: 16px; color: #fff;">{title}</span>
+    </div>
+    <div class="expression-btns">
+      <button class="exp-btn active" data-exp="neutral">自然 (Neutral)</button>
+      <button class="exp-btn" data-exp="smile">微笑 (Smile)</button>
+      <button class="exp-btn" data-exp="blush">害羞 (Blush)</button>
+      <button class="exp-btn" data-exp="alert">警戒 (Alert)</button>
+    </div>
+  </div>
+
+  <div class="stage-wrapper" style="position: relative; width: 100%; height: 350px; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #18112b 0%, #0a0614 100%);">
+    <canvas class="live2d-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+
+    <div class="stage-overlay">
+      <div class="motion-bar">
+        <span style="font-size: 11px; color: var(--text-muted); margin-right: 4px;">动作触发:</span>
+        <button class="motion-btn active" data-motion="idle">待机呼吸</button>
+        <button class="motion-btn" data-motion="wave">打招呼</button>
+        <button class="motion-btn" data-motion="cast">技能充能</button>
+      </div>
+
+      <div class="tracking-indicator">
+        <span class="track-dot"></span> 视线鼠标追踪开启
+      </div>
+    </div>
+
+    <div class="tracking-hint">移动鼠标查看头部与视线九轴动态跟随</div>
+  </div>
+</div>
+
+<style>
+  .live2d-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 20px;
+    backdrop-filter: blur(16px);
+  }
+
+  .live2d-badge {
+    background: rgba(236, 72, 153, 0.15);
+    border: 1px solid rgba(236, 72, 153, 0.4);
+    color: #f43f5e;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  .expression-btns {
+    display: flex;
+    gap: 6px;
+  }
+
+  .exp-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .exp-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  .exp-btn.active {
+    background: #ec4899;
+    border-color: #f43f5e;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(236, 72, 153, 0.4);
+  }
+
+  .stage-overlay {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .motion-bar {
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 4px 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .motion-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .motion-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+  }
+
+  .motion-btn.active {
+    background: #8b5cf6;
+    border-color: #a855f7;
+    color: #fff;
+  }
+
+  .tracking-indicator {
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #ec4899;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .track-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ec4899;
+    box-shadow: 0 0 8px #ec4899;
+  }
+
+  .tracking-hint {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 11px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+</style>
+
+<script>
+  function initLive2D() {
+    const containers = document.querySelectorAll('[data-live2d-container]');
+    containers.forEach((container) => {
+      const canvas = container.querySelector('.live2d-canvas') as HTMLCanvasElement;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const stage = container.querySelector('.stage-wrapper') as HTMLElement;
+
+      let targetX = 0;
+      let targetY = 0;
+      let currentX = 0;
+      let currentY = 0;
+      let motion = 'idle';
+      let expression = 'neutral';
+      let breathTime = 0;
+
+      // 表情切换
+      container.querySelectorAll('.exp-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          container.querySelectorAll('.exp-btn').forEach((b) => b.classList.remove('active'));
+          const target = e.currentTarget as HTMLElement;
+          target.classList.add('active');
+          expression = target.dataset.exp || 'neutral';
+        });
+      });
+
+      // 动作切换
+      container.querySelectorAll('.motion-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          container.querySelectorAll('.motion-btn').forEach((b) => b.classList.remove('active'));
+          const target = e.currentTarget as HTMLElement;
+          target.classList.add('active');
+          motion = target.dataset.motion || 'idle';
+        });
+      });
+
+      stage.addEventListener('mousemove', (e) => {
+        const rect = stage.getBoundingClientRect();
+        targetX = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+        targetY = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+      });
+
+      stage.addEventListener('mouseleave', () => {
+        targetX = 0;
+        targetY = 0;
+      });
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        const w = stage.clientWidth;
+        const h = stage.clientHeight;
+        if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+          canvas.width = w * dpr;
+          canvas.height = h * dpr;
+        }
+      }
+
+      let animId: number;
+
+      function draw() {
+        resize();
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.width / dpr;
+        const h = canvas.height / dpr;
+
+        ctx!.save();
+        ctx!.scale(dpr, dpr);
+        ctx!.clearRect(0, 0, w, h);
+
+        breathTime += 0.04;
+
+        // 视线与头部阻尼逼近算法 (Spring damping)
+        currentX += (targetX - currentX) * 0.08;
+        currentY += (targetY - currentY) * 0.08;
+
+        const centerX = w / 2;
+        const centerY = h / 2 + 10;
+
+        // 呼吸偏移与动作计算
+        let breathOffset = Math.sin(breathTime) * 3;
+        let waveArm = 0;
+        let castGlow = 0;
+
+        if (motion === 'wave') {
+          waveArm = Math.sin(breathTime * 4) * 22;
+        } else if (motion === 'cast') {
+          castGlow = (Math.sin(breathTime * 6) * 0.5 + 0.5) * 20;
+          breathOffset += (Math.sin(breathTime * 8) * 1.5);
+        }
+
+        const headX = centerX + currentX * 18;
+        const headY = centerY - 30 + currentY * 12 + breathOffset;
+
+        // 1. 背后机能光环 / 披风层
+        if (motion === 'cast') {
+          ctx!.beginPath();
+          ctx!.arc(headX, headY, 110 + castGlow, 0, Math.PI * 2);
+          ctx!.fillStyle = 'rgba(236, 72, 153, 0.08)';
+          ctx!.fill();
+          ctx!.strokeStyle = 'rgba(236, 72, 153, 0.4)';
+          ctx!.lineWidth = 2;
+          ctx!.setLineDash([8, 6]);
+          ctx!.stroke();
+          ctx!.setLineDash([]);
+        }
+
+        // 2. 躯干与服装
+        ctx!.beginPath();
+        ctx!.moveTo(headX - 35, headY + 70);
+        ctx!.lineTo(headX + 35, headY + 70);
+        ctx!.lineTo(centerX + 55, h);
+        ctx!.lineTo(centerX - 55, h);
+        ctx!.closePath();
+        ctx!.fillStyle = '#1e1438';
+        ctx!.fill();
+        ctx!.strokeStyle = '#a855f7';
+        ctx!.lineWidth = 1.5;
+        ctx!.stroke();
+
+        // 3. 领带与挥动手臂
+        if (motion === 'wave') {
+          ctx!.beginPath();
+          ctx!.moveTo(headX + 35, headY + 70);
+          ctx!.lineTo(headX + 80, headY + 20 + waveArm);
+          ctx!.strokeStyle = '#ec4899';
+          ctx!.lineWidth = 8;
+          ctx!.lineCap = 'round';
+          ctx!.stroke();
+        }
+
+        // 4. 头部外廓与发丝
+        ctx!.beginPath();
+        ctx!.arc(headX, headY, 52, 0, Math.PI * 2);
+        ctx!.fillStyle = '#150f26';
+        ctx!.fill();
+        ctx!.strokeStyle = '#ec4899';
+        ctx!.lineWidth = 2;
+        ctx!.stroke();
+
+        // 赛博耳机结构
+        ctx!.beginPath();
+        ctx!.arc(headX - 52, headY, 14, 0, Math.PI * 2);
+        ctx!.arc(headX + 52, headY, 14, 0, Math.PI * 2);
+        ctx!.fillStyle = '#0a0614';
+        ctx!.fill();
+        ctx!.strokeStyle = '#38bdf8';
+        ctx!.lineWidth = 2.5;
+        ctx!.stroke();
+
+        // 5. 眼睛与注视点计算
+        const eyeSpacing = 22;
+        const eyeY = headY + 4;
+        const eyeOffsetX = currentX * 7;
+        const eyeOffsetY = currentY * 5;
+
+        // 左右眼
+        [-1, 1].forEach((dir) => {
+          const ex = headX + dir * eyeSpacing;
+          ctx!.beginPath();
+          ctx!.ellipse(ex, eyeY, 11, 14, 0, 0, Math.PI * 2);
+          ctx!.fillStyle = '#2a1236';
+          ctx!.fill();
+          ctx!.strokeStyle = '#ec4899';
+          ctx!.lineWidth = 1.5;
+          ctx!.stroke();
+
+          // 瞳孔
+          ctx!.beginPath();
+          ctx!.arc(ex + eyeOffsetX, eyeY + eyeOffsetY, 6, 0, Math.PI * 2);
+          ctx!.fillStyle = expression === 'alert' ? '#38bdf8' : '#f43f5e';
+          ctx!.fill();
+
+          // 高光
+          ctx!.beginPath();
+          ctx!.arc(ex + eyeOffsetX - 2, eyeY + eyeOffsetY - 2, 2.5, 0, Math.PI * 2);
+          ctx!.fillStyle = '#fff';
+          ctx!.fill();
+        });
+
+        // 6. 表情特异性绘制 (Smile, Blush, Neutral)
+        if (expression === 'blush') {
+          ctx!.fillStyle = 'rgba(244, 63, 94, 0.45)';
+          ctx!.beginPath();
+          ctx!.ellipse(headX - 25, headY + 18, 9, 5, 0, 0, Math.PI * 2);
+          ctx!.ellipse(headX + 25, headY + 18, 9, 5, 0, 0, Math.PI * 2);
+          ctx!.fill();
+        }
+
+        // 嘴巴
+        ctx!.beginPath();
+        if (expression === 'smile') {
+          ctx!.arc(headX, headY + 24, 8, 0.1 * Math.PI, 0.9 * Math.PI);
+        } else if (expression === 'alert') {
+          ctx!.arc(headX, headY + 28, 4, 0, Math.PI * 2);
+        } else {
+          ctx!.moveTo(headX - 6, headY + 26);
+          ctx!.lineTo(headX + 6, headY + 26);
+        }
+        ctx!.strokeStyle = '#ec4899';
+        ctx!.lineWidth = 2;
+        ctx!.stroke();
+
+        ctx!.restore();
+        animId = requestAnimationFrame(draw);
+      }
+
+      animId = requestAnimationFrame(draw);
+
+      document.addEventListener('astro:before-preparation', () => {
+        cancelAnimationFrame(animId);
+      }, { once: true });
+    });
+  }
+
+  document.addEventListener('astro:page-load', initLive2D);
+</script>

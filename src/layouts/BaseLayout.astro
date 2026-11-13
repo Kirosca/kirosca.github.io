@@ -39,9 +39,11 @@ const currentPath = Astro.url.pathname;
 
       const peerOrder: Record<string, number> = {
         '/': 0,
-        '/artworks': 1,
-        '/projects': 2,
-        '/posts': 3,
+        '/tech-art': 1,
+        '/gallery': 2,
+        '/artworks': 2,
+        '/projects': 3,
+        '/posts': 4,
       };
 
       document.addEventListener('astro:before-preparation', (event) => {

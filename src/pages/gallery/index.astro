@@ -1,0 +1,126 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ArtworkCard from '../../components/ArtworkCard.astro';
+import ModelViewer3D from '../../components/ModelViewer3D.astro';
+import Live2DViewer from '../../components/Live2DViewer.astro';
+import { getCollection } from 'astro:content';
+
+const allArtworks = await getCollection('artworks');
+const activeArtworks = allArtworks.filter((art) => !art.data.draft);
+const artworks2d = activeArtworks.filter((art) => !art.data.artType || art.data.artType === '2d');
+---
+
+<BaseLayout
+  title="多维视觉艺术展厅 (Gallery) | Kirosca"
+  description="Kirosca 的多维视觉艺术库：2D 原画设计、3D 实时 PBR 资产检视与 Live2D 动态交互立绘"
+>
+  <section style="padding: 20px 0 10px;">
+    <div class="section-title-wrap">
+      <div class="section-title">多维视觉艺术展厅（Visual Gallery）</div>
+      <a href="/#gallery" class="section-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        返回首页
+      </a>
+    </div>
+    <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 24px;">
+      跨越二维插画、三维实时几何体与 Live2D 骨骼动效，探索视觉交互与数字美术的综合呈现。
+    </p>
+
+    <!-- 分类筛选器 -->
+    <div class="gallery-tabs" style="display: flex; gap: 8px; margin-bottom: 28px; flex-wrap: wrap;">
+      <button class="gallery-tab active" data-filter="all">全部作品 (All)</button>
+      <button class="gallery-tab" data-filter="3d">3D 资产 (3D Models)</button>
+      <button class="gallery-tab" data-filter="live2d">Live2D 动态 (Live2D)</button>
+      <button class="gallery-tab" data-filter="2d">2D 数字插画 (2D Art)</button>
+    </div>
+
+    <!-- 1. 3D 资产模块 -->
+    <div class="gallery-item-section" data-type="3d" style="margin-bottom: 36px;">
+      <div class="section-title" style="font-size: 18px; margin-bottom: 16px;">
+        <span style="color: #38bdf8;">◈</span> 3D 次世代模型检视器 (Interactive 3D)
+      </div>
+      <ModelViewer3D title="Core-Mark-IV 机械核心 (PBR/Normal/Wireframe)" polyCount="12,480 Tris" />
+    </div>
+
+    <!-- 2. Live2D 动态模块 -->
+    <div class="gallery-item-section" data-type="live2d" style="margin-bottom: 36px;">
+      <div class="section-title" style="font-size: 18px; margin-bottom: 16px;">
+        <span style="color: #ec4899;">◈</span> Live2D 动态交互立绘 (Live2D & Physics)
+      </div>
+      <Live2DViewer title="赛博机能少女 9轴视线跟随与物理摆动" />
+    </div>
+
+    <!-- 3. 2D 数字插画与概念设计 -->
+    <div class="gallery-item-section" data-type="2d" style="margin-bottom: 36px;">
+      <div class="section-title" style="font-size: 18px; margin-bottom: 16px;">
+        <span style="color: #818cf8;">◈</span> 2D 原画与概念设计 (2D Artworks)
+      </div>
+      <div class="grid-cards">
+        {artworks2d.map((art) => (
+          <ArtworkCard
+            title={art.data.title}
+            description={art.data.description}
+            tags={art.data.tags}
+            imageUrl={art.data.imageUrl}
+            date={art.data.date}
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .gallery-tab {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 16px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .gallery-tab:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  .gallery-tab.active {
+    background: var(--primary);
+    border-color: var(--primary-light);
+    color: #fff;
+    box-shadow: 0 0 12px var(--glow);
+  }
+</style>
+
+<script>
+  function initGalleryFilter() {
+    const tabs = document.querySelectorAll('.gallery-tab');
+    const sections = document.querySelectorAll('.gallery-item-section');
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', (e) => {
+        tabs.forEach((t) => t.classList.remove('active'));
+        const target = e.currentTarget as HTMLElement;
+        target.classList.add('active');
+        const filter = target.dataset.filter || 'all';
+
+        sections.forEach((sec) => {
+          const type = (sec as HTMLElement).dataset.type;
+          if (filter === 'all' || filter === type) {
+            (sec as HTMLElement).style.display = 'block';
+          } else {
+            (sec as HTMLElement).style.display = 'none';
+          }
+        });
+      });
+    });
+  }
+
+  document.addEventListener('astro:page-load', initGalleryFilter);
+</script>

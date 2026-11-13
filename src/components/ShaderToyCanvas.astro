@@ -1,0 +1,352 @@
+---
+interface Props {
+  title?: string;
+  defaultPreset?: 'hologram' | 'ocean';
+}
+
+const { title = '实时 WebGL 着色器实验台 (Shader Lab)', defaultPreset = 'hologram' } = Astro.props;
+---
+
+<div class="shader-card card" data-shader-container>
+  <div class="card-header" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="pulse-indicator"></span>
+      <span style="font-weight: 700; font-size: 16px; color: #fff;">{title}</span>
+    </div>
+    <div class="shader-presets">
+      <button class="preset-btn active" data-preset="hologram">全息脉冲 (Hologram)</button>
+      <button class="preset-btn" data-preset="ocean">程序海洋 (Ocean)</button>
+    </div>
+  </div>
+
+  <div class="canvas-wrapper" style="position: relative; width: 100%; height: 320px; border-radius: 12px; overflow: hidden; background: #050811;">
+    <canvas class="shader-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+    
+    <div class="fps-badge">
+      <span class="fps-val">60</span> FPS · WebGL
+    </div>
+  </div>
+
+  <!-- 参数交互调节面板 -->
+  <div class="shader-controls">
+    <div class="control-item">
+      <div class="control-label">
+        <span>频率 / 密度 (Density)</span>
+        <span class="val-display" id="val-density">12.0</span>
+      </div>
+      <input type="range" min="4" max="28" step="0.5" value="12" class="slider" data-param="density" />
+    </div>
+
+    <div class="control-item">
+      <div class="control-label">
+        <span>流动速度 (Speed)</span>
+        <span class="val-display" id="val-speed">1.2</span>
+      </div>
+      <input type="range" min="0.2" max="3.0" step="0.1" value="1.2" class="slider" data-param="speed" />
+    </div>
+
+    <div class="control-item">
+      <div class="control-label">
+        <span>能量光强 (Glow)</span>
+        <span class="val-display" id="val-glow">1.5</span>
+      </div>
+      <input type="range" min="0.5" max="3.0" step="0.1" value="1.5" class="slider" data-param="glow" />
+    </div>
+
+    <div class="control-item">
+      <div class="control-label">
+        <span>色彩相移 (Hue)</span>
+        <span class="val-display" id="val-hue">0.0</span>
+      </div>
+      <input type="range" min="0" max="6.28" step="0.1" value="0.0" class="slider" data-param="hue" />
+    </div>
+  </div>
+</div>
+
+<style>
+  .shader-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 20px;
+    backdrop-filter: blur(16px);
+  }
+
+  .pulse-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 10px #22c55e;
+    display: inline-block;
+  }
+
+  .shader-presets {
+    display: flex;
+    gap: 6px;
+  }
+
+  .preset-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .preset-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  .preset-btn.active {
+    background: var(--primary);
+    border-color: var(--primary-light);
+    color: #fff;
+    box-shadow: 0 0 12px var(--glow);
+  }
+
+  .fps-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: monospace;
+    color: #38bdf8;
+    pointer-events: none;
+  }
+
+  .shader-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .control-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .val-display {
+    font-family: monospace;
+    color: var(--primary-light);
+    font-weight: 600;
+  }
+
+  .slider {
+    width: 100%;
+    accent-color: var(--primary-light);
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  function initShader() {
+    const containers = document.querySelectorAll('[data-shader-container]');
+    containers.forEach((container) => {
+      const canvas = container.querySelector('.shader-canvas') as HTMLCanvasElement;
+      if (!canvas) return;
+      const gl = canvas.getContext('webgl');
+      if (!gl) return;
+
+      const vsSource = `
+        attribute vec2 position;
+        void main() {
+          gl_Position = vec4(position, 0.0, 1.0);
+        }
+      `;
+
+      const fsSource = `
+        precision highp float;
+        uniform vec2 u_resolution;
+        uniform float u_time;
+        uniform float u_density;
+        uniform float u_speed;
+        uniform float u_glow;
+        uniform float u_hue;
+        uniform int u_preset;
+
+        // 旋转矩阵
+        mat2 rotate2D(float r) {
+          return mat2(cos(r), -sin(r), sin(r), cos(r));
+        }
+
+        void main() {
+          vec2 st = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+          float t = u_time * u_speed;
+
+          vec3 finalColor = vec3(0.0);
+
+          if (u_preset == 0) {
+            // 全息护盾 (Hexagonal Holographic Shield)
+            vec2 grid = st * u_density;
+            grid = rotate2D(t * 0.1) * grid;
+            
+            float hex = max(abs(fract(grid.x) - 0.5), abs(fract(grid.y) - 0.5));
+            float edge = smoothstep(0.42, 0.48, hex);
+            
+            // 环形中心脉冲波
+            float dist = length(st);
+            float ring = sin(dist * 18.0 - t * 4.0) * 0.5 + 0.5;
+            float fresnel = pow(dist, 1.8);
+
+            vec3 baseCyan = vec3(0.08, 0.75, 0.95);
+            vec3 pulseViolet = vec3(0.68, 0.28, 0.98);
+            vec3 col = mix(baseCyan, pulseViolet, sin(u_hue + t * 0.5) * 0.5 + 0.5);
+
+            finalColor = (col * edge * 1.8 + pulseViolet * ring * fresnel * 1.5) * u_glow;
+            finalColor += col * (1.0 - smoothstep(0.0, 0.15, abs(dist - 0.85))) * 2.0;
+          } else {
+            // 程序化海面 (Procedural Ocean Waves)
+            vec2 p = st * (u_density * 0.3);
+            for(int i = 1; i < 4; i++) {
+              float fi = float(i);
+              p.x += 0.4 / fi * sin(fi * 3.0 * p.y + t * 1.5);
+              p.y += 0.4 / fi * cos(fi * 3.0 * p.x + t * 1.5);
+            }
+            float wave = sin(p.x + p.y);
+            vec3 deepBlue = vec3(0.03, 0.12, 0.35);
+            vec3 foamCyan = vec3(0.18, 0.85, 0.82);
+            vec3 sunGlow = vec3(0.95, 0.98, 1.0);
+
+            float sss = pow(max(0.0, wave), 3.0);
+            finalColor = mix(deepBlue, foamCyan, wave * 0.5 + 0.5);
+            finalColor += sunGlow * sss * 1.2 * u_glow;
+            finalColor = mix(finalColor, finalColor.brg, sin(u_hue) * 0.5 + 0.5);
+          }
+
+          gl_FragColor = vec4(finalColor, 1.0);
+        }
+      `;
+
+      function createShader(gl: WebGLRenderingContext, type: number, source: string) {
+        const shader = gl.createShader(type);
+        if (!shader) return null;
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        return shader;
+      }
+
+      const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+      const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+      if (!vs || !fs) return;
+
+      const program = gl.createProgram();
+      if (!program) return;
+      gl.attachShader(program, vs);
+      gl.attachShader(program, fs);
+      gl.linkProgram(program);
+      gl.useProgram(program);
+
+      // 全屏四边形
+      const posBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+        gl.STATIC_DRAW
+      );
+
+      const posLoc = gl.getAttribLocation(program, 'position');
+      gl.enableVertexAttribArray(posLoc);
+      gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+      const uRes = gl.getUniformLocation(program, 'u_resolution');
+      const uTime = gl.getUniformLocation(program, 'u_time');
+      const uDensity = gl.getUniformLocation(program, 'u_density');
+      const uSpeed = gl.getUniformLocation(program, 'u_speed');
+      const uGlow = gl.getUniformLocation(program, 'u_glow');
+      const uHue = gl.getUniformLocation(program, 'u_hue');
+      const uPreset = gl.getUniformLocation(program, 'u_preset');
+
+      let params = {
+        density: 12.0,
+        speed: 1.2,
+        glow: 1.5,
+        hue: 0.0,
+        preset: 0
+      };
+
+      // 绑定滑块输入
+      container.querySelectorAll('.slider').forEach((slider) => {
+        slider.addEventListener('input', (e) => {
+          const input = e.target as HTMLInputElement;
+          const param = input.dataset.param;
+          const val = parseFloat(input.value);
+          if (param && param in params) {
+            (params as any)[param] = val;
+            const display = container.querySelector(`#val-${param}`);
+            if (display) display.textContent = val.toFixed(1);
+          }
+        });
+      });
+
+      // 预设切换
+      container.querySelectorAll('.preset-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const target = e.currentTarget as HTMLElement;
+          container.querySelectorAll('.preset-btn').forEach((b) => b.classList.remove('active'));
+          target.classList.add('active');
+          params.preset = target.dataset.preset === 'ocean' ? 1 : 0;
+        });
+      });
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = Math.floor(canvas.clientWidth * dpr);
+        const h = Math.floor(canvas.clientHeight * dpr);
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+          gl!.viewport(0, 0, w, h);
+        }
+      }
+
+      let startTime = performance.now();
+      let animId: number;
+
+      function render() {
+        resize();
+        const elapsed = (performance.now() - startTime) * 0.001;
+
+        gl!.uniform2f(uRes, canvas.width, canvas.height);
+        gl!.uniform1f(uTime, elapsed);
+        gl!.uniform1f(uDensity, params.density);
+        gl!.uniform1f(uSpeed, params.speed);
+        gl!.uniform1f(uGlow, params.glow);
+        gl!.uniform1f(uHue, params.hue);
+        gl!.uniform1i(uPreset, params.preset);
+
+        gl!.drawArrays(gl.TRIANGLES, 0, 6);
+        animId = requestAnimationFrame(render);
+      }
+
+      animId = requestAnimationFrame(render);
+
+      // 清理钩子
+      document.addEventListener('astro:before-preparation', () => {
+        cancelAnimationFrame(animId);
+      }, { once: true });
+    });
+  }
+
+  document.addEventListener('astro:page-load', initShader);
+</script>

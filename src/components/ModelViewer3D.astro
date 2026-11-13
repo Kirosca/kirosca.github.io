@@ -1,0 +1,339 @@
+---
+interface Props {
+  title?: string;
+  polyCount?: string;
+}
+
+const { title = '3D 资产实时检视器 (PBR Inspector)', polyCount = '12,480 Tris' } = Astro.props;
+---
+
+<div class="model3d-card card" data-model-container>
+  <div class="card-header" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="poly-badge">3D 实时</span>
+      <span style="font-weight: 700; font-size: 16px; color: #fff;">{title}</span>
+    </div>
+    <div class="render-modes">
+      <button class="mode-btn active" data-mode="pbr">PBR 着色</button>
+      <button class="mode-btn" data-mode="normal">法线图 (Normal)</button>
+      <button class="mode-btn" data-mode="wireframe">线框 (Wire)</button>
+    </div>
+  </div>
+
+  <div class="viewport-3d" style="position: relative; width: 100%; height: 340px; border-radius: 12px; overflow: hidden; background: radial-gradient(circle at center, #172033 0%, #080c16 100%); cursor: grab;">
+    <canvas class="canvas-3d" style="width: 100%; height: 100%; display: block;"></canvas>
+    
+    <div class="viewport-overlay">
+      <div class="info-pill">{polyCount} · 切线空间法线</div>
+      <div class="rotate-toggle">
+        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); cursor: pointer;">
+          <input type="checkbox" checked class="auto-rotate-check" /> 自动回转
+        </label>
+      </div>
+    </div>
+    <div class="drag-hint">按住左键拖拽旋转 · 滚轮缩放</div>
+  </div>
+</div>
+
+<style>
+  .model3d-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 20px;
+    backdrop-filter: blur(16px);
+  }
+
+  .poly-badge {
+    background: rgba(14, 165, 233, 0.15);
+    border: 1px solid rgba(14, 165, 233, 0.4);
+    color: #38bdf8;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  .render-modes {
+    display: flex;
+    gap: 6px;
+  }
+
+  .mode-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .mode-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  .mode-btn.active {
+    background: #0284c7;
+    border-color: #38bdf8;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(14, 165, 233, 0.4);
+  }
+
+  .viewport-overlay {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .info-pill {
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #cbd5e1;
+    font-family: monospace;
+  }
+
+  .rotate-toggle {
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  .drag-hint {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 11px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+</style>
+
+<script>
+  function init3DViewer() {
+    const containers = document.querySelectorAll('[data-model-container]');
+    containers.forEach((container) => {
+      const canvas = container.querySelector('.canvas-3d') as HTMLCanvasElement;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      let mode = 'pbr';
+      let autoRotate = true;
+      let rotX = 0.4;
+      let rotY = 0.6;
+      let scale = 1.0;
+      let isDragging = false;
+      let lastMouseX = 0;
+      let lastMouseY = 0;
+
+      // 顶点构建：正二十面体/多面体机械核心
+      const phi = (1 + Math.sqrt(5)) / 2;
+      const rawVertices = [
+        [-1,  phi, 0], [ 1,  phi, 0], [-1, -phi, 0], [ 1, -phi, 0],
+        [0, -1,  phi], [0,  1,  phi], [0, -1, -phi], [0,  1, -phi],
+        [ phi, 0, -1], [ phi, 0,  1], [-phi, 0, -1], [-phi, 0,  1]
+      ];
+
+      const faces = [
+        [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
+        [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+        [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+        [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]
+      ];
+
+      // 切换模式
+      container.querySelectorAll('.mode-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          container.querySelectorAll('.mode-btn').forEach((b) => b.classList.remove('active'));
+          const target = e.currentTarget as HTMLElement;
+          target.classList.add('active');
+          mode = target.dataset.mode || 'pbr';
+        });
+      });
+
+      const autoCheck = container.querySelector('.auto-rotate-check') as HTMLInputElement;
+      if (autoCheck) {
+        autoCheck.addEventListener('change', () => {
+          autoRotate = autoCheck.checked;
+        });
+      }
+
+      // 鼠标交互
+      const viewport = container.querySelector('.viewport-3d') as HTMLElement;
+      viewport.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        viewport.style.cursor = 'grabbing';
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - lastMouseX;
+        const dy = e.clientY - lastMouseY;
+        rotY += dx * 0.008;
+        rotX += dy * 0.008;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDragging = false;
+        if (viewport) viewport.style.cursor = 'grab';
+      });
+
+      viewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        scale += e.deltaY * -0.001;
+        scale = Math.max(0.6, Math.min(1.8, scale));
+      }, { passive: false });
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        const w = viewport.clientWidth;
+        const h = viewport.clientHeight;
+        if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+          canvas.width = w * dpr;
+          canvas.height = h * dpr;
+        }
+      }
+
+      let animId: number;
+
+      function draw() {
+        resize();
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.width / dpr;
+        const h = canvas.height / dpr;
+
+        ctx!.save();
+        ctx!.scale(dpr, dpr);
+        ctx!.clearRect(0, 0, w, h);
+
+        if (autoRotate && !isDragging) {
+          rotY += 0.012;
+          rotX += 0.004;
+        }
+
+        const cx = w / 2;
+        const cy = h / 2;
+        const radius = Math.min(w, h) * 0.28 * scale;
+
+        // 旋转变换
+        const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+        const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+
+        const transformed = rawVertices.map(([x, y, z]) => {
+          // 绕 Y 轴
+          const x1 = x * cosY + z * sinY;
+          const z1 = -x * sinY + z * cosY;
+          // 绕 X 轴
+          const y2 = y * cosX - z1 * sinX;
+          const z2 = y * sinX + z1 * cosX;
+          return {
+            x: cx + x1 * radius,
+            y: cy + y2 * radius,
+            z: z2,
+            nx: x1,
+            ny: y2,
+            nz: z2
+          };
+        });
+
+        // 深度排序 (Painter's algorithm)
+        const sortedFaces = faces.map((indices) => {
+          const v0 = transformed[indices[0]];
+          const v1 = transformed[indices[1]];
+          const v2 = transformed[indices[2]];
+          const avgZ = (v0.z + v1.z + v2.z) / 3;
+
+          // 计算面法线
+          const ax = v1.x - v0.x, ay = v1.y - v0.y, az = v1.z - v0.z;
+          const bx = v2.x - v0.x, by = v2.y - v0.y, bz = v2.z - v0.z;
+          const nx = ay * bz - az * by;
+          const ny = az * bx - ax * bz;
+          const nz = ax * by - ay * bx;
+          const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+
+          return {
+            indices,
+            avgZ,
+            normal: { x: nx / len, y: ny / len, z: nz / len }
+          };
+        }).sort((a, b) => a.avgZ - b.avgZ);
+
+        // 绘制面
+        sortedFaces.forEach((f) => {
+          const v0 = transformed[f.indices[0]];
+          const v1 = transformed[f.indices[1]];
+          const v2 = transformed[f.indices[2]];
+
+          ctx!.beginPath();
+          ctx!.moveTo(v0.x, v0.y);
+          ctx!.lineTo(v1.x, v1.y);
+          ctx!.lineTo(v2.x, v2.y);
+          ctx!.closePath();
+
+          const lightDir = { x: 0.5, y: -0.7, z: 0.8 };
+          const lLen = Math.sqrt(lightDir.x ** 2 + lightDir.y ** 2 + lightDir.z ** 2);
+          const dot = Math.max(0.1, (f.normal.x * lightDir.x + f.normal.y * lightDir.y + f.normal.z * lightDir.z) / lLen);
+
+          if (mode === 'pbr') {
+            const r = Math.floor(20 + 200 * dot);
+            const g = Math.floor(30 + 180 * dot);
+            const b = Math.floor(60 + 220 * dot);
+            ctx!.fillStyle = `rgba(${r}, ${g}, ${b}, 0.95)`;
+            ctx!.fill();
+            ctx!.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+            ctx!.lineWidth = 1;
+            ctx!.stroke();
+          } else if (mode === 'normal') {
+            // 切线法线 RGB 映射: [-1, 1] -> [0, 255]
+            const nr = Math.floor((f.normal.x * 0.5 + 0.5) * 255);
+            const ng = Math.floor((f.normal.y * 0.5 + 0.5) * 255);
+            const nb = Math.floor((f.normal.z * 0.5 + 0.5) * 255);
+            ctx!.fillStyle = `rgb(${nr}, ${ng}, ${nb})`;
+            ctx!.fill();
+            ctx!.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx!.lineWidth = 0.8;
+            ctx!.stroke();
+          } else if (mode === 'wireframe') {
+            ctx!.fillStyle = 'rgba(10, 16, 30, 0.85)';
+            ctx!.fill();
+            ctx!.strokeStyle = '#38bdf8';
+            ctx!.lineWidth = 1.5;
+            ctx!.stroke();
+          }
+        });
+
+        ctx!.restore();
+        animId = requestAnimationFrame(draw);
+      }
+
+      animId = requestAnimationFrame(draw);
+
+      document.addEventListener('astro:before-preparation', () => {
+        cancelAnimationFrame(animId);
+      }, { once: true });
+    });
+  }
+
+  document.addEventListener('astro:page-load', init3DViewer);
+</script>
